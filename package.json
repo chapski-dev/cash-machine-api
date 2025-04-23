@@ -16,7 +16,6 @@
     "jsonwebtoken": "^8.5.1",
     "mgr-swagger-express": "^0.0.6",
     "pg": "^8.14.1",
-    "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.7",
     "swagger-ui-express": "^4.6.0",
     "uuid": "^9.0.1"
@@ -27,6 +26,7 @@
     "@types/express-validator": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^18.7.14",
+    "@types/pg": "^8.11.13",
     "@types/swagger-jsdoc": "^6.0.1",
     "@types/swagger-ui-express": "^4.1.3",
     "@types/uuid": "^9.0.7",

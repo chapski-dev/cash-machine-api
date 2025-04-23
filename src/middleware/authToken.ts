@@ -10,7 +10,6 @@ export const authToken = (req: Request, res: Response, next: NextFunction) => {
     
     if (token) {
       jwt.verify(token, 'secret_key',(err, user) => {
-        log('err -> ', err)
           if (err) {
             if (err.name === 'TokenExpiredError') {
               throw new AppError({

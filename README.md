@@ -1,6 +1,6 @@
 # Cash Machine API
 
-This is a simple RESTful API for a cash machine system built with Node.js, Express.js, and Sequelize. It allows users to register, log in, check their balance, deposit, withdraw, transfer money to other users, and view their transaction history. The API uses JWT for authentication and PostgreSQL as the database.
+This is a simple RESTful API for a cash machine system built with Node.js, Express.js, and PostgreSQL. It allows users to register, log in, check their balance, deposit, withdraw, transfer money to other users, and view their transaction history. The API uses JWT for authentication and PostgreSQL as the database.
 
 ## Installation
 

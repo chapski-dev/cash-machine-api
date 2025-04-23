@@ -3,10 +3,11 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { userRepository } from '../repositories/user.repository';
 import { refreshTokenRepository } from '../repositories/refreshToken.repository';
-import { log } from "console";
+import { AppError, HttpCode } from "errors";
+import { IUser } from "types";
 
-const generateAccessToken = (user: any) => {
-  return jwt.sign({ id: user.id, email: user.email }, 'secret_key', { expiresIn: '15m' });
+const generateAccessToken = (user: IUser) => {
+  return jwt.sign({ id: user.user_id, email: user.email }, 'secret_key', { expiresIn: '15m' });
 };
 
 const generateRefreshToken = () => {
@@ -16,20 +17,18 @@ const generateRefreshToken = () => {
 class AuthServices {
   async register (username: string, email: string, password: string ) {
       const existingUser = await userRepository.findUserByEmail(email);
-      log('existingUser', existingUser)
       if (existingUser) {
-        throw new Error('User already exists');
+        throw new AppError({
+          description: "User already exists",
+          httpCode: HttpCode.BAD_REQUEST,
+        });
       }
-      log("process.env.SALT_ROUNDS", typeof process.env.SALT_ROUNDS)
       const hashedPassword = await bcrypt.hash(password, Number(process.env.SALT_ROUNDS) || 10);
-      log('hashedPassword', hashedPassword)
       const user = await userRepository.createUser(username, email, hashedPassword);
-      log('createUser ', user)
       const refreshToken = generateRefreshToken();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       //@ts-ignore
-      await refreshTokenRepository.createRefreshToken(refreshToken, user.id, expiresAt);
-      log('createRefreshToken ', refreshToken)
+      await refreshTokenRepository.createRefreshToken(refreshToken, user.user_id, expires_at);
       const accessToken = generateAccessToken(user);
       return { accessToken, refreshToken };
   }
@@ -37,17 +36,24 @@ class AuthServices {
   async login (email: string, password: string) {
     const user = await userRepository.findUserByEmail(email);
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw new AppError({
+        description: "Invalid credentials",
+        httpCode: HttpCode.BAD_REQUEST,
+      });
     }
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      throw new Error('Invalid credentials');
+      throw new AppError({
+        description: "Invalid credentials",
+        httpCode: HttpCode.BAD_REQUEST,
+      });
     }
     
     const refreshToken = generateRefreshToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     //@ts-ignore
-    await refreshTokenRepository.createRefreshToken(refreshToken, user.id, expiresAt);
+    await refreshTokenRepository.createRefreshToken(refreshToken, user.user_id, expires_at);
     
     const accessToken = generateAccessToken(user);
     return { accessToken, refreshToken, user };
@@ -55,18 +61,29 @@ class AuthServices {
 
   async checkEmailExists (email: string) {
     const user = await userRepository.findUserByEmail(email);
+    if (!user) {
+      throw new AppError({
+        description: 'User not found',
+        httpCode: HttpCode.NOT_FOUND,
+      });
+    }
     return !!user;
   };
 
   async refreshAccessToken (refreshToken: string) {
     const tokenRecord = await refreshTokenRepository.findRefreshToken(refreshToken);
-    log('tokenRecord => ', tokenRecord)
-    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
-      throw new Error('Invalid or expired refresh token');
+    if (!tokenRecord || tokenRecord.expires_at < new Date()) {
+      throw new AppError({
+        description: "Invalid or expired refresh token",
+        httpCode: HttpCode.BAD_REQUEST,
+      });
     }
-    const user = await userRepository.findUserById(tokenRecord.userId);
+    const user = await userRepository.findUserById(tokenRecord.user_id);
     if (!user) {
-      throw new Error('User not found');
+      throw new AppError({
+        description: 'User not found',
+        httpCode: HttpCode.NOT_FOUND,
+      });
     }
     const newAccessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken();
@@ -74,6 +91,10 @@ class AuthServices {
     return { access_token: newAccessToken, refresh_token: newRefreshToken };
   };
 
+  async deleteAccount (email: string) {
+    await this.checkEmailExists(email); 
+    await userRepository.deleteUser(email)
+  };
 }
 
 export const authServices = new AuthServices();

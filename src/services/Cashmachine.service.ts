@@ -1,64 +1,83 @@
-import { Transaction } from "models";
-import { User } from "models";
+import { userRepository } from "repositories/user.repository";
+import { transactionsRepository } from "repositories/transactions.repository";
+import { AppError, HttpCode } from "errors";
+import { log } from "console";
+
 
 export class CashmachineService {
   async getHistory(email: string) {
-    return await Transaction.findAll({ where: { email } });
+    return await transactionsRepository.findAllByEmail(email);
   }
 
   async getBalance(email: string) {
-    const account = await User.findOne({ where: { email } });
+    const account = await userRepository.findUserByEmail(email);
     if (!account) {
-      throw new Error('Account not found');
+      throw new AppError({
+        description: 'Account not found',
+        httpCode: HttpCode.NOT_FOUND,
+      });
     }
     return account.balance;
   }
-    
+
   //POST
   async withdraw(email: string, amount: number) {
-    const user = await User.findOne({ where: { email } });
+    const user = await userRepository.findUserByEmail(email);
     if (!user) {
-      throw new Error('Account not found');
+      throw new AppError({
+        description: 'Account not found',
+        httpCode: HttpCode.NOT_FOUND,
+      });
     }
     if (user.balance < amount) {
-      throw new Error('Insufficient funds');
+      throw new AppError({
+        description: 'Insufficient funds',
+        httpCode: HttpCode.BAD_REQUEST,
+      });
     }
-    user.balance -= amount;
-    await user.save();
-    //@ts-ignore
-    await Transaction.create({ email, type: 'withdraw', amount, timestamp: new Date() });
-    return user.balance;
+
+    const newBalance = user.balance - amount;
+    await userRepository.updateBalance(user.email, newBalance);
+    await transactionsRepository.createTransaction(user.email, null, amount, 'withdrawal');
+    return newBalance;
   }
 
   async transfer(sender_email: string, recipient_email: string, amount: number) {
-    const senderAccount = await User.findOne({ where: { email: sender_email } });
-    const recipientAccount = await User.findOne({ where: { email: recipient_email } });
-    if (!senderAccount || !recipientAccount) {
-      throw new Error('User not found');
-    }
-    if (senderAccount.balance < amount) {
-      throw new Error('Insufficient funds');
-    }
-    senderAccount.balance -= amount;
-    recipientAccount.balance += amount;
-    await senderAccount.save();
-    await recipientAccount.save();
-    //@ts-ignore
-    await Transaction.create({ email: sender_email, type: 'transfer', amount, recipient_email, timestamp: new Date()  });
-    return senderAccount.balance;
+    const senderAccount = await userRepository.findUserByEmail(sender_email);
+    const recipientAccount = await userRepository.findUserByEmail(recipient_email);
 
+
+    if (!senderAccount || !recipientAccount) {
+      throw new AppError({
+        description: 'User not found',
+        httpCode: HttpCode.NOT_FOUND,
+      });
+    }
+
+    if (senderAccount.balance < amount) {
+      throw new AppError({
+        description: 'Insufficient funds',
+        httpCode: HttpCode.BAD_REQUEST,
+      });
+    }
+
+    const senderNewBalance = senderAccount.balance - amount;
+    const recipientNewBalance = recipientAccount.balance + amount;
+    await userRepository.updateBalance(senderAccount.email, senderNewBalance);
+    await userRepository.updateBalance(recipientAccount.email, recipientNewBalance);
+    await transactionsRepository.createTransaction(senderAccount.email, recipientAccount.email, amount, 'transfer');
+
+    return senderNewBalance;
   }
 
   async deposit(email: string, amount: number) {
-    const account = await User.findOne({ where: { email } });
-    if (!account) {
-      throw new Error('Account not found');
-    }
-    account.balance += amount;
-    await account.save();
-    //@ts-ignore
-    await Transaction.create({ email, type: 'deposit', amount, timestamp: new Date() });
-    return account.balance;
+    const account = await userRepository.findUserByEmail(email);
+    const newBalance = account.balance + amount;
+    await userRepository.updateBalance(account.email, newBalance);
+    await transactionsRepository.createTransaction(null, account.email, amount, 'deposit');
+
+    return newBalance;
+
   }
 }
 

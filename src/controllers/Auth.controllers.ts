@@ -6,8 +6,7 @@ import { IRefreshTokenAttributes, IRegister } from "types/auth";
 import { validateRequest } from "utils/validator";
 class AuthController {
 
-  async register (req: Request<IRegister, IRegister, IRegister>, res: Response) {
-    console.log('register')
+  async register(req: Request<IRegister, IRegister, IRegister>, res: Response) {
     const validationErrors = validationResult(req);
     try {
       validateRequest(validationErrors, {
@@ -30,11 +29,10 @@ class AuthController {
         description: "Not valid data.",
         httpCode: HttpCode.BAD_REQUEST,
       });
-      const {accessToken, refreshToken, user}  = await authServices.login(email, password);
-      return res.status(200).json({ 
-        accessToken, 
-        refreshToken, 
-        user,
+      const { accessToken, refreshToken } = await authServices.login(email, password);
+      return res.status(200).json({
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return errorHandler.handleError(error, res, validationErrors);
@@ -68,6 +66,22 @@ class AuthController {
       const { token } = req.body;
       const { access_token, refresh_token } = await authServices.refreshAccessToken(token);
       return res.status(200).json({ message: 'Token refreshed', access_token, refresh_token });
+    } catch (error: any) {
+      return errorHandler.handleError(error, res, validationErrors);
+    }
+  }
+
+  async deleteAccount(req: Request, res: Response) {
+    const validationErrors = validationResult(req);
+    try {
+      validateRequest(validationErrors, {
+        description: "Not valid data.",
+        httpCode: HttpCode.BAD_REQUEST,
+      });
+      const { email } = req.body.user;
+      await authServices.deleteAccount(email);
+
+      return res.status(200).json({ message: 'Account deleted!' });
     } catch (error: any) {
       return errorHandler.handleError(error, res, validationErrors);
     }
