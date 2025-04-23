@@ -52,6 +52,7 @@ To access protected endpoints (e.g., cash machine operations), include the JWT t
 - `POST /api/auth/login`: Log in and get access/refresh tokens
 - `POST /api/auth/check-email`: Check if an email is registered
 - `POST /api/auth/refresh-token`: Refresh the access token
+- `POST /api/auth/delete-account`: Delete account
 - `GET /api/cashmachine/history`: Get transaction history (authenticated)
 - `GET /api/cashmachine/balance`: Get current balance (authenticated)
 - `POST /api/cashmachine/deposit`: Deposit money (authenticated)
