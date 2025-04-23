@@ -1,37 +1,59 @@
 import pool from 'config/db';
-import { PoolClient } from 'pg';
-import { Transacstions } from 'types/transactions';
+import { Transactions } from 'types/transactions';
 
-type TransactionType = 'deposit' | 'withdrawal' | 'transfer' | 'transfer';
 
 class TransactionsRepository {
-  async findAllByEmail(email: string): Promise<Transacstions[]> {
-    const result = await pool.query(
-      `SELECT
-      CASE
-        WHEN sender_email = $1 AND receiver_email IS NOT NULL THEN 'sent'
-        WHEN receiver_email = $1 AND sender_email IS NOT NULL THEN 'received'
-        WHEN sender_email = $1 AND receiver_email IS NULL THEN 'withdrawal'
-        WHEN receiver_email = $1 AND sender_email IS NULL THEN 'deposit'
-      END AS action,
-      amount,
-      created_at
-    FROM transactions
-    WHERE sender_email = $1 OR receiver_email = $1
-    ORDER BY created_at DESC`,
+  async findAllByEmail(email: string): Promise<any[]> {
+    const result = await pool.query<Transactions>(
+      `
+      SELECT
+        type,
+        CASE
+          WHEN type = 'transfer' AND sender_email   = $1 THEN 'sent'
+          WHEN type = 'transfer' AND receiver_email = $1 THEN 'received'
+          WHEN type = 'deposit'   AND receiver_email = $1 THEN 'deposit'
+          WHEN type = 'withdrawal' AND sender_email   = $1 THEN 'withdrawal'
+        END AS action,
+        sender_email,
+        receiver_email,
+        amount,
+        created_at
+      FROM transactions
+      WHERE
+        -- включаем все транзакции, где вы были хоть отправителем, хоть получателем
+        sender_email   = $1
+        OR receiver_email = $1
+      ORDER BY created_at DESC
+      `,
       [email]
     );
-    return result.rows;
-  }
   
+    return result.rows.map((row) => {
+      const base = {
+        action:     row.action,
+        amount:     parseFloat(row.amount),
+        created_at: row.created_at,
+      };
+  
+      if (row.type === 'transfer') {
+        return {
+          ...base,
+          from: row.sender_email   ?? 'Deleted user',
+          to:   row.receiver_email ?? 'Deleted user',
+        };
+      }
+  
+      return base;
+    });
+  }  
 
-  async createTransaction(sender_email: string | null, receiver_email: string | null, amount: number, type: TransactionType) {
+  async createTransaction(sender_email: string | null, receiver_email: string | null, amount: number, type: Transactions['type']) {
     await pool.query(
       `INSERT INTO transactions (sender_email, receiver_email, amount, type) VALUES ($1, $2, $3, $4)`,
       [sender_email, receiver_email, amount, type]
     );
   }
-  
+
 }
 
 export const transactionsRepository = new TransactionsRepository();

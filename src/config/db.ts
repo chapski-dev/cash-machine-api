@@ -36,13 +36,10 @@ async function setupDatabase() {
       -- transactions
       CREATE TABLE IF NOT EXISTS transactions (
         id SERIAL PRIMARY KEY,
-        sender_email TEXT
-          REFERENCES users(email) ON DELETE SET NULL,
-        receiver_email TEXT
-          REFERENCES users(email) ON DELETE SET NULL,
+        sender_email TEXT REFERENCES users(email) ON DELETE SET NULL,
+        receiver_email TEXT REFERENCES users(email) ON DELETE SET NULL,
+        type TEXT  CHECK (type IN ('deposit','withdrawal','transfer')) NOT NULL,
         amount NUMERIC(12,2) NOT NULL,
-        type TEXT
-          CHECK (type IN ('deposit','withdrawal','transfer')) NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
     
