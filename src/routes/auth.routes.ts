@@ -8,9 +8,7 @@ const router = express.Router();
 router.post("/login", validator.login, authController.login);
 router.post("/register", validator.registration, authController.register);
 router.post('/check-email', validator.checkEmail, authController.checkEmail);
-//@ts-ignore
 router.post('/refresh-token', validator.refreshToken, authController.refreshToken);
-
 router.delete('/delete-account', authToken, authController.deleteAccount);
 
 

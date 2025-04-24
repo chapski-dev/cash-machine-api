@@ -1,10 +1,11 @@
 import { userRepository } from "repositories/user.repository";
 import { transactionsRepository } from "repositories/transactions.repository";
 import { AppError, HttpCode } from "errors";
-import { log } from "console";
-
+import pool from "config/db";
+import { ERROR_MESSAGES } from "constants/error-message";
 
 export class CashmachineService {
+
   async getHistory(email: string) {
     return await transactionsRepository.findAllByEmail(email);
   }
@@ -13,71 +14,118 @@ export class CashmachineService {
     const account = await userRepository.findUserByEmail(email);
     if (!account) {
       throw new AppError({
-        description: 'Account not found',
+        description: ERROR_MESSAGES.USER.NOT_FOUND,
         httpCode: HttpCode.NOT_FOUND,
       });
     }
     return account.balance;
   }
 
-  //POST
   async withdraw(email: string, amount: number) {
-    const user = await userRepository.findUserByEmail(email);
-    if (!user) {
-      throw new AppError({
-        description: 'Account not found',
-        httpCode: HttpCode.NOT_FOUND,
-      });
-    }
-    if (user.balance < amount) {
-      throw new AppError({
-        description: 'Insufficient funds',
-        httpCode: HttpCode.BAD_REQUEST,
-      });
-    }
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const user = await userRepository.findUserByEmail(email);
+      if (!user) {
+        throw new AppError({
+          description: ERROR_MESSAGES.USER.NOT_FOUND,
+          httpCode: HttpCode.NOT_FOUND,
+        });
+      }
+      if (user.balance < amount) {
+        throw new AppError({
+          description: ERROR_MESSAGES.TRANSACTION.INSUFFICIENT_FUNDS,
+          httpCode: HttpCode.BAD_REQUEST,
+        });
+      }
 
-    const newBalance = user.balance - amount;
-    await userRepository.updateBalance(user.email, newBalance);
-    await transactionsRepository.createTransaction(user.email, null, amount, 'withdrawal');
-    return newBalance;
+      const newBalance = await userRepository.subtractFunds(user.email, amount, client);
+      await transactionsRepository.createTransaction(user.email, null, amount, 'withdrawal', client);
+
+      await client.query("COMMIT");
+
+      return newBalance;
+
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async transfer(sender_email: string, recipient_email: string, amount: number) {
-    const senderAccount = await userRepository.findUserByEmail(sender_email);
-    const recipientAccount = await userRepository.findUserByEmail(recipient_email);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
+      const [senderAccount, recipientAccount] = await Promise.all([
+        userRepository.findUserByEmail(sender_email),
+        userRepository.findUserByEmail(recipient_email)
+      ]);
 
-    if (!senderAccount || !recipientAccount) {
-      throw new AppError({
-        description: 'User not found',
-        httpCode: HttpCode.NOT_FOUND,
-      });
+      if (!recipientAccount || !senderAccount) {
+        throw new AppError({
+          description: ERROR_MESSAGES.USER.NOT_FOUND,
+          httpCode: HttpCode.NOT_FOUND,
+        });
+      }
+
+      if (sender_email === recipient_email) {
+        throw new AppError({
+          description: ERROR_MESSAGES.USER.SELF_TRANSFER,
+          httpCode: HttpCode.FORBIDDEN,
+        });
+      }
+
+      if (senderAccount.balance < amount) {
+        throw new AppError({
+          description: ERROR_MESSAGES.TRANSACTION.INSUFFICIENT_FUNDS,
+          httpCode: HttpCode.BAD_REQUEST,
+        });
+      }
+
+      const senderNewBalance = await userRepository.subtractFunds(senderAccount.email, amount, client);
+      await userRepository.depositFunds(recipientAccount.email, amount, client);
+
+      await transactionsRepository.createTransaction(senderAccount.email, recipientAccount.email, amount, 'transfer', client);
+
+      await client.query("COMMIT");
+
+      return senderNewBalance;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
 
-    if (senderAccount.balance < amount) {
-      throw new AppError({
-        description: 'Insufficient funds',
-        httpCode: HttpCode.BAD_REQUEST,
-      });
-    }
-
-    const senderNewBalance = senderAccount.balance - amount;
-    const recipientNewBalance = recipientAccount.balance + amount;
-    await userRepository.updateBalance(senderAccount.email, senderNewBalance);
-    await userRepository.updateBalance(recipientAccount.email, recipientNewBalance);
-    await transactionsRepository.createTransaction(senderAccount.email, recipientAccount.email, amount, 'transfer');
-
-    return senderNewBalance;
   }
 
   async deposit(email: string, amount: number) {
-    const account = await userRepository.findUserByEmail(email);
-    const newBalance = account.balance + amount;
-    await userRepository.updateBalance(account.email, newBalance);
-    await transactionsRepository.createTransaction(null, account.email, amount, 'deposit');
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    return newBalance;
+      const account = await userRepository.findUserByEmail(email);
+      if (!account) {
+        throw new AppError({
+          description: ERROR_MESSAGES.USER.NOT_FOUND,
+          httpCode: HttpCode.NOT_FOUND,
+        });
+      }
+      const newBalance = await userRepository.depositFunds(account.email, amount, client);
+      await transactionsRepository.createTransaction(null, account.email, amount, 'deposit', client);
 
+      await client.query("COMMIT");
+
+      return newBalance;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }
 

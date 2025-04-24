@@ -1,10 +1,11 @@
 import pool from 'config/db';
-import { Transactions } from 'types/transactions';
+import { PoolClient } from 'pg';
+import { TransactionsDB, TransactionsHistory } from 'types/transactions';
 
 
 class TransactionsRepository {
-  async findAllByEmail(email: string): Promise<any[]> {
-    const result = await pool.query<Transactions>(
+  async findAllByEmail(email: string): Promise<TransactionsHistory[]> {
+    const result = await pool.query<TransactionsDB>(
       `
       SELECT
         type,
@@ -20,7 +21,7 @@ class TransactionsRepository {
         created_at
       FROM transactions
       WHERE
-        -- включаем все транзакции, где вы были хоть отправителем, хоть получателем
+        -- include all transactions where you were either the sender or the recipient
         sender_email   = $1
         OR receiver_email = $1
       ORDER BY created_at DESC
@@ -47,8 +48,8 @@ class TransactionsRepository {
     });
   }  
 
-  async createTransaction(sender_email: string | null, receiver_email: string | null, amount: number, type: Transactions['type']) {
-    await pool.query(
+  async createTransaction(sender_email: string | null, receiver_email: string | null, amount: number, type: TransactionsDB['type'], client: PoolClient) {
+    await client.query(
       `INSERT INTO transactions (sender_email, receiver_email, amount, type) VALUES ($1, $2, $3, $4)`,
       [sender_email, receiver_email, amount, type]
     );

@@ -28,8 +28,8 @@ async function setupDatabase() {
       CREATE TABLE IF NOT EXISTS refresh_tokens (
         id SERIAL PRIMARY KEY,
         token VARCHAR(255) NOT NULL UNIQUE,
-        user_id VARCHAR(255) NOT NULL
-          REFERENCES users(user_id) ON DELETE CASCADE,
+        email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+        user_id VARCHAR(255) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         expires_at TIMESTAMPTZ NOT NULL
       );
     
@@ -43,16 +43,16 @@ async function setupDatabase() {
         created_at TIMESTAMP DEFAULT NOW()
       );
     
-      -- индексы по sender/receiver
+      -- indexes by sender/receiver
       CREATE INDEX IF NOT EXISTS idx_transactions_sender_email
         ON transactions(sender_email);
       CREATE INDEX IF NOT EXISTS idx_transactions_receiver_email
         ON transactions(receiver_email);
     `);
     
-    console.log('Таблицы созданы или уже существуют');
+    console.log('Tables have been created or already exist ✌️');
   } catch (error) {
-    console.error('Ошибка при создании таблиц:', error);
+    console.error('Error creating tables:', error);
     process.exit(1);
   }
 }

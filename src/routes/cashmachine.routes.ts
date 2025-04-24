@@ -7,9 +7,9 @@ const router = express.Router();
 
 router.get("/history", authToken, cashmachineController.getHistory);
 router.get("/balance", authToken, cashmachineController.getBalance);
-router.post("/withdraw",authToken, validator.deposit, cashmachineController.withdraw);
-router.post("/deposit", authToken,  validator.deposit, cashmachineController.deposit);
-router.post("/transfer", authToken, validator.deposit, cashmachineController.transfer);
+router.post("/withdraw",authToken, validator.transfer, cashmachineController.withdraw);
+router.post("/deposit", authToken,  validator.transfer, cashmachineController.deposit);
+router.post("/transfer", authToken, validator.transfer, cashmachineController.transfer);
 
 
 export default router;

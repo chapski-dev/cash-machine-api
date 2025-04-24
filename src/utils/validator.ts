@@ -1,44 +1,80 @@
-import { Result, ValidationError, body } from "express-validator";
-import { ERROR_MESSAGE } from "../constants";
+import {
+  Result,
+  ValidationError,
+  body,
+  validationResult,
+} from "express-validator";
+
 import { AppError, HttpCode } from "errors";
-import { log } from "console";
+import { NextFunction, Request, Response } from "express";
+import { IRefreshTokenAttributes } from "types/auth";
+import { VALIDATION_MESSAGES } from "constants/error-message";
+
+const handleValidationErrors = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res
+      .status(HttpCode.BAD_REQUEST)
+      .json({ errors: errors.array() });
+  }
+  next();
+};
+
+const validateAmount = body("amount")
+  .isFloat({ gt: 0 })
+  .withMessage(VALIDATION_MESSAGES.AMOUNT_MIN)
+  .customSanitizer((value) => parseFloat(value));
+
 
 export const validator = {
   login: [
-    body("email")
-      .isEmail()
-      .withMessage('Invalid email or password'),
+    body("email").isEmail().withMessage(VALIDATION_MESSAGES.INVALID_CREDENTIALS),
     body("password")
       .isLength({ min: 6 })
-      .withMessage('Invalid email or password'),
+      .withMessage(VALIDATION_MESSAGES.INVALID_CREDENTIALS),
+    handleValidationErrors,
   ],
 
   registration: [
-    body('username').notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage(ERROR_MESSAGE.easy_password),
+    body("username").notEmpty().withMessage(VALIDATION_MESSAGES.NAME_REQUIRED),
+    body("email").isEmail().withMessage(VALIDATION_MESSAGES.EMAIL_REQUIRED),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage(VALIDATION_MESSAGES.PASWORD_LENGTH),
+    handleValidationErrors,
   ],
 
-  checkEmail: [body('email').isEmail().withMessage('Valid email is required')],
-  refreshToken: [body('token').notEmpty().withMessage('Token is required')],
-
-  deposit: [
-    body('amount')
-    // 1. Проверка типа данных
-    .custom(value => typeof value === 'number') 
-    .withMessage("Amount must be a number type (not string)")
-    
-    // 2. Проверка на минимальное значение
-    .isFloat({ gt: 0 })
-    .withMessage("Amount must be greater than 0")
+  checkEmail: [
+    body("email").isEmail().withMessage(VALIDATION_MESSAGES.EMAIL_REQUIRED),
+    handleValidationErrors,
   ],
 
-}
+  refreshToken: [
+    body("token").notEmpty().withMessage(VALIDATION_MESSAGES.TOKEN_REQUIRED),
+    (
+      req: Request<any, any, IRefreshTokenAttributes>,
+      res: Response,
+      next: NextFunction
+    ) => handleValidationErrors(req, res, next),
+  ],
 
-export const validateRequest = (errors: Result<ValidationError>, errorData: {
-  description: string,
-  httpCode: HttpCode,
-}) => {
+  transfer: [
+    validateAmount,
+    handleValidationErrors,
+  ],
+};
+
+export const validateRequest = (
+  errors: Result<ValidationError>,
+  errorData: {
+    description: string;
+    httpCode: HttpCode;
+  }
+) => {
   if (!errors.isEmpty()) {
     throw new AppError(errorData);
   }

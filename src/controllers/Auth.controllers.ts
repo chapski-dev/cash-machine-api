@@ -1,89 +1,60 @@
-import { HttpCode, errorHandler } from "errors";
+import { SUCCESS_MESSAGES } from "constants/response-message";
+import { errorHandler } from "errors";
 import { Request, Response } from "express";
-import { validationResult } from "express-validator";
 import { authServices } from "services";
-import { IRefreshTokenAttributes, IRegister } from "types/auth";
-import { validateRequest } from "utils/validator";
+import { ILoginBody, IRefreshTokenAttributes, IRegister } from "types/auth";
 class AuthController {
 
-  async register(req: Request<IRegister, IRegister, IRegister>, res: Response) {
-    const validationErrors = validationResult(req);
+  async register(req: Request<any, any, IRegister>, res: Response) {
     try {
-      validateRequest(validationErrors, {
-        description: "Not valid data.",
-        httpCode: HttpCode.BAD_REQUEST,
-      });
       const { username, email, password } = req.body;
-      const { accessToken, refreshToken } = await authServices.register(username, email, password);
-      return res.status(201).json({ message: 'User registered successfully', accessToken, refreshToken });
+      await authServices.register(username, email, password);
+      return res.status(201).json({ message: SUCCESS_MESSAGES.AUTH.REGISTERED });
     } catch (error: any) {
-      return errorHandler.handleError(error, res, validationErrors);
+      return errorHandler.handleError(error, res);
     }
   }
 
-  async login(req: Request, res: Response) {
-    const validationErrors = validationResult(req);
+  async login(req: Request<any, any, ILoginBody>, res: Response) {
     const { email, password } = req.body;
     try {
-      validateRequest(validationErrors, {
-        description: "Not valid data.",
-        httpCode: HttpCode.BAD_REQUEST,
-      });
       const { accessToken, refreshToken } = await authServices.login(email, password);
       return res.status(200).json({
         accessToken,
         refreshToken,
       });
     } catch (error: any) {
-      return errorHandler.handleError(error, res, validationErrors);
+      return errorHandler.handleError(error, res);
     }
   }
 
-  async checkEmail(req: Request, res: Response) {
-    const validationErrors = validationResult(req);
+  async checkEmail(req: Request<any, any, { email: string }>, res: Response) {
     try {
-      validateRequest(validationErrors, {
-        description: "Not valid data.",
-        httpCode: HttpCode.BAD_REQUEST,
-      });
-
       const { email } = req.body;
       const isExist = await authServices.checkEmailExists(email);
       return res.status(200).json({ is_exist: isExist });
     } catch (error: any) {
-      return errorHandler.handleError(error, res, validationErrors);
+      return errorHandler.handleError(error, res);
     }
   }
 
-  async refreshToken(req: Request<IRefreshTokenAttributes, IRefreshTokenAttributes, IRefreshTokenAttributes>, res: Response) {
-    const validationErrors = validationResult(req);
+  async refreshToken(req: Request<any, any, IRefreshTokenAttributes>, res: Response) {
     try {
-      validateRequest(validationErrors, {
-        description: "Not valid data.",
-        httpCode: HttpCode.BAD_REQUEST,
-      });
-
       const { token } = req.body;
       const { access_token, refresh_token } = await authServices.refreshAccessToken(token);
-      return res.status(200).json({ message: 'Token refreshed', access_token, refresh_token });
+      return res.status(200).json({ message: SUCCESS_MESSAGES.AUTH.TOKENS_REFRESHED, access_token, refresh_token });
     } catch (error: any) {
-      return errorHandler.handleError(error, res, validationErrors);
+      return errorHandler.handleError(error, res);
     }
   }
 
   async deleteAccount(req: Request, res: Response) {
-    const validationErrors = validationResult(req);
     try {
-      validateRequest(validationErrors, {
-        description: "Not valid data.",
-        httpCode: HttpCode.BAD_REQUEST,
-      });
       const { email } = req.body.user;
       await authServices.deleteAccount(email);
-
-      return res.status(200).json({ message: 'Account deleted!' });
+      return res.status(200).json({ message: SUCCESS_MESSAGES.AUTH.ACCOUNT_DELETED });
     } catch (error: any) {
-      return errorHandler.handleError(error, res, validationErrors);
+      return errorHandler.handleError(error, res);
     }
   }
 }

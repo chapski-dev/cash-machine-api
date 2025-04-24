@@ -26,6 +26,7 @@ This is a simple RESTful API for a cash machine system built with Node.js, Expre
    HOST=your_database_host
    PORT=3000
    SALT_ROUNDS=10
+   JWT_SECRET=secret_key
    ```
 
 4. Start the server:
