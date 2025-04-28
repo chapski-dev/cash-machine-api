@@ -6,9 +6,11 @@
     "start": "NODE_PATH=src ts-node ./src/index.ts",
     "dev": "nodemon",
     "start:prod": "yarn build && node ./dist/src/index.js",
-    "build": "npx tsc"
+    "build": "npx tsc && yarn sentry:sourcemaps",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org chapski-development --project cash-machine-api ./dist && sentry-cli sourcemaps upload --org chapski-development --project cash-machine-api ./dist"
   },
   "dependencies": {
+    "@sentry/cli": "^2.43.1",
     "@sentry/node": "^9.14.0",
     "bcrypt": "^5.1.0",
     "dotenv": "^16.0.2",

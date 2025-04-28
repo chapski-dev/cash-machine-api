@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/node";
+
 export enum HttpCode {
   OK = 200,
   NO_CONTENT = 204,
@@ -35,6 +37,7 @@ export class AppError extends Error {
       this.isOperational = args.isOperational;
     }
 
+    Sentry.captureException(this);
     Error.captureStackTrace(this);
   }
 }
