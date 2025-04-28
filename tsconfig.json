@@ -14,9 +14,10 @@
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": false,
     "baseUrl": "src",
     "experimentalDecorators": true,
+    "sourceMap": true
   },
   "include": [
     "src"
