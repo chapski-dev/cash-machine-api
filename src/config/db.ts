@@ -22,6 +22,7 @@ async function setupDatabase() {
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         balance NUMERIC(12, 2) NOT NULL DEFAULT 0
+        CHECK (balance >= 0)
       );
     
       -- refresh tokens
