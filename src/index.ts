@@ -1,25 +1,20 @@
-import pool from "config/db";
-import swaggerUi from "swagger-ui-express";
-import express from "express";
-import routers from "routes";
-import swaggerJSDoc from "swagger-jsdoc";
-import { swaggerOptions } from "swagger";
+import * as dotenv from "dotenv";
+dotenv.config();
 
-const app = express();
+import { initializeDatabase } from "./database";
+import { createApp } from "./server";
 
-const swaggerDocs = swaggerJSDoc(swaggerOptions);
+async function startApp() {
+  try {
+    await initializeDatabase(); // First connect to DB
+    const app = createApp();    // Init express app
+    app.listen(process.env.PORT || 3000, () => {
+      console.log(`Application started on port ${process.env.PORT || 3000}!`);
+    });
+  } catch (err) {
+    console.error("Failed to start the application:", err);
+    process.exit(1); // Terminate if somthing went wrong
+  }
+}
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
-
-app.use("/api", routers);
-
-pool.connect()
-  .then(() => console.log('DB connected!'))
-  .catch((err) => console.log('pg pool connect error: ', err?.message));
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`Application started on port ${process.env.PORT || 3000}!`);
-});
+startApp();
