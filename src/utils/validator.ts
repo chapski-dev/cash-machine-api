@@ -25,10 +25,23 @@ const handleValidationErrors = (
 };
 
 const validateAmount = body("amount")
+  .custom((value) => {
+    if (typeof value !== "number") {
+      throw new Error(VALIDATION_MESSAGES.AMOUNT_TYPE);
+    }
+    return true;
+  })
   .isFloat({ gt: 0 })
   .withMessage(VALIDATION_MESSAGES.AMOUNT_MIN)
+  .custom((value) => {
+    const stringValue = String(value);
+    const pattern = /^\d+(\.\d{1,2})?$/;
+    if (!pattern.test(stringValue)) {
+      throw new Error(VALIDATION_MESSAGES.ONLY_TWO_DECINALS);
+    }
+    return true;
+  })
   .customSanitizer((value) => parseFloat(value));
-
 
 export const validator = {
   login: [

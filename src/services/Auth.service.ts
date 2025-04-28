@@ -12,17 +12,24 @@ import {
 import { ERROR_MESSAGES } from "constants/error-message";
 import pool from "config/db";
 
-const generateAccessToken = (user: IUser) => {
-  return jwt.sign(
-    { id: user.user_id, email: user.email },
-    process.env.JWT_SECRET || "secret_key",
-    { expiresIn: AUTH_TOKEN_EXPIRES_IN }
-  );
-};
 
-const generateRefreshToken = () => {
-  return uuidv4();
-};
+const generateAuthToken =(type: "access" | 'refresh', user: IUser) => {
+  switch (type) {
+    case 'access':
+      return jwt.sign(
+        { id: user.user_id, email: user.email, username: user.username },
+        process.env.JWT_SECRET || "secret_key",
+        { expiresIn: AUTH_TOKEN_EXPIRES_IN }
+      );
+
+      case 'refresh': 
+      return jwt.sign(
+        { id: user.user_id, email: user.email, username: user.username },
+        process.env.JWT_SECRET || "secret_key",
+        { expiresIn: REFRESH_TOKEN_EXPIRES_IN.getTime() }
+      );
+  }
+}
 
 class AuthServices {
   async register(username: string, email: string, password: string) {
@@ -61,7 +68,7 @@ class AuthServices {
       });
     }
 
-    const refreshToken = generateRefreshToken();
+    const refreshToken = generateAuthToken('refresh',user);
     await refreshTokenRepository.createRefreshToken(
       refreshToken,
       user.user_id,
@@ -69,7 +76,7 @@ class AuthServices {
       REFRESH_TOKEN_EXPIRES_IN
     );
 
-    const accessToken = generateAccessToken(user);
+    const accessToken = generateAuthToken('access',user);
     return { accessToken, refreshToken, user };
   }
 
@@ -111,8 +118,8 @@ class AuthServices {
         });
       }
 
-      const newAccessToken = generateAccessToken(user);
-      const newRefreshToken = generateRefreshToken();
+      const newAccessToken = generateAuthToken('access',user);
+      const newRefreshToken = generateAuthToken('refresh', user);
 
       await refreshTokenRepository.createRefreshToken(
         newRefreshToken,

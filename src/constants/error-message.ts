@@ -13,6 +13,8 @@ export const VALIDATION_MESSAGES = {
   AMOUNT_MIN: "Amount must be greater than 0",
   /** "Password must contain minimum 6 symbols" */
   PASWORD_LENGTH: 'Password must contains min 6 symbols',
+  /** Maximum fractional part - hundredths (two decimal places) */
+  ONLY_TWO_DECINALS: "Maximum fractional part - hundredths (two decimal places)"
 };
 
 export const ERROR_MESSAGES = {
