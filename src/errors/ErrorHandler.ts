@@ -1,6 +1,7 @@
 import { Response } from "express";
-import { AppError, HttpCode } from "./AppError";
+import { AppError } from "./AppError";
 import { Result, ValidationError } from "express-validator";
+import { HttpCode } from "constants/http";
 
 class ErrorHandler {
   private handleTrustedError(

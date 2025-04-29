@@ -1,6 +1,7 @@
 import pool from 'config/db';
 import { ERROR_MESSAGES } from 'constants/error-message';
-import { AppError, HttpCode } from 'errors';
+import { HttpCode } from 'constants/http';
+import { AppError } from 'errors';
 import { PoolClient } from 'pg';
 import { IUser } from 'types/users';
 import { v4 as uuidv4 } from 'uuid';

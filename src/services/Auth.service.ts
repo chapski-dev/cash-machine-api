@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { userRepository } from "../repositories/user.repository";
 import { refreshTokenRepository } from "../repositories/refreshToken.repository";
-import { AppError, HttpCode } from "errors";
+import { AppError } from "errors";
 import { IUser } from "types/users";
 import {
   AUTH_TOKEN_EXPIRES_IN,
@@ -11,6 +11,7 @@ import {
 } from "constants/auth";
 import { ERROR_MESSAGES } from "constants/error-message";
 import pool from "config/db";
+import { HttpCode } from "constants/http";
 
 
 const generateAuthToken =(type: "access" | 'refresh', user: IUser) => {
@@ -68,16 +69,16 @@ class AuthServices {
       });
     }
 
-    const refreshToken = generateAuthToken('refresh',user);
+    const refresh_token = generateAuthToken('refresh',user);
     await refreshTokenRepository.createRefreshToken(
-      refreshToken,
+      refresh_token,
       user.user_id,
       user.email,
       REFRESH_TOKEN_EXPIRES_IN
     );
 
-    const accessToken = generateAuthToken('access',user);
-    return { accessToken, refreshToken, user };
+    const access_token = generateAuthToken('access',user);
+    return { access_token, refresh_token, user };
   }
 
   async checkEmailExists(email: string) {
@@ -91,13 +92,13 @@ class AuthServices {
     return !!user;
   }
 
-  async refreshAccessToken(refreshToken: string) {
+  async refreshAccessToken(refresh_token: string) {
     const client = await pool.connect();
     try {
       client.query("BEGIN");
 
       const tokenRecord = await refreshTokenRepository.findRefreshToken(
-        refreshToken,
+        refresh_token,
         client
       );
 
@@ -108,7 +109,7 @@ class AuthServices {
         });
       }
 
-      await refreshTokenRepository.deleteRefreshToken(refreshToken, client);
+      await refreshTokenRepository.deleteRefreshToken(refresh_token, client);
 
       const user = await userRepository.findUserByEmail(tokenRecord.email, client);
       if (!user) {

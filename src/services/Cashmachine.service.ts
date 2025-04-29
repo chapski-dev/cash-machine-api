@@ -1,8 +1,9 @@
 import { userRepository } from "repositories/user.repository";
 import { transactionsRepository } from "repositories/transactions.repository";
-import { AppError, HttpCode } from "errors";
+import { AppError } from "errors";
 import pool from "config/db";
 import { ERROR_MESSAGES } from "constants/error-message";
+import { HttpCode } from "constants/http";
 
 export class CashmachineService {
 

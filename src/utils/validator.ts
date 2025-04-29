@@ -5,10 +5,11 @@ import {
   validationResult,
 } from "express-validator";
 
-import { AppError, HttpCode } from "errors";
+import { AppError } from "errors";
 import { NextFunction, Request, Response } from "express";
 import { IRefreshTokenAttributes } from "types/auth";
 import { VALIDATION_MESSAGES } from "constants/error-message";
+import { HttpCode } from "constants/http";
 
 const handleValidationErrors = (
   req: Request,

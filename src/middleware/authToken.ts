@@ -1,5 +1,6 @@
 import { ERROR_MESSAGES } from "constants/error-message";
-import { AppError, HttpCode, errorHandler } from "errors";
+import { HttpCode } from "constants/http";
+import { AppError, errorHandler } from "errors";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { userRepository } from "repositories/user.repository";
@@ -18,8 +19,8 @@ export const authToken = async (req: Request, res: Response, next: NextFunction)
   try {
     const authHeader = req.headers?.authorization;
     const token = authHeader && authHeader.split(" ")[1];
-    
-    if(!token) {
+
+    if (!token) {
       throw new AppError({
         description: ERROR_MESSAGES.AUTH.TOKEN_REQUIRED,
         httpCode: HttpCode.FORBIDDEN,

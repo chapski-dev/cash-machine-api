@@ -1,3 +1,4 @@
+import { HttpCode } from "constants/http";
 import { SUCCESS_MESSAGES } from "constants/response-message";
 import { errorHandler } from "errors";
 import { Request, Response } from "express";
@@ -9,7 +10,7 @@ class AuthController {
     try {
       const { username, email, password } = req.body;
       await authServices.register(username, email, password);
-      return res.status(201).json({ message: SUCCESS_MESSAGES.AUTH.REGISTERED });
+      return res.status(HttpCode.CREATED).json({ message: SUCCESS_MESSAGES.AUTH.REGISTERED });
     } catch (error: any) {
       return errorHandler.handleError(error, res);
     }
@@ -18,10 +19,10 @@ class AuthController {
   async login(req: Request<any, any, ILoginBody>, res: Response) {
     const { email, password } = req.body;
     try {
-      const { accessToken, refreshToken } = await authServices.login(email, password);
-      return res.status(200).json({
-        accessToken,
-        refreshToken,
+      const { access_token, refresh_token } = await authServices.login(email, password);
+      return res.status(HttpCode.OK).json({
+        access_token,
+        refresh_token,
       });
     } catch (error: any) {
       return errorHandler.handleError(error, res);
@@ -32,7 +33,7 @@ class AuthController {
     try {
       const { email } = req.body;
       const isExist = await authServices.checkEmailExists(email);
-      return res.status(200).json({ is_exist: isExist });
+      return res.status(HttpCode.OK).json({ is_exist: isExist });
     } catch (error: any) {
       return errorHandler.handleError(error, res);
     }
@@ -42,7 +43,7 @@ class AuthController {
     try {
       const { token } = req.body;
       const { access_token, refresh_token } = await authServices.refreshAccessToken(token);
-      return res.status(200).json({ message: SUCCESS_MESSAGES.AUTH.TOKENS_REFRESHED, access_token, refresh_token });
+      return res.status(HttpCode.OK).json({ message: SUCCESS_MESSAGES.AUTH.TOKENS_REFRESHED, access_token, refresh_token });
     } catch (error: any) {
       return errorHandler.handleError(error, res);
     }
@@ -52,7 +53,7 @@ class AuthController {
     try {
       const { email } = req.body.user;
       await authServices.deleteAccount(email);
-      return res.status(200).json({ message: SUCCESS_MESSAGES.AUTH.ACCOUNT_DELETED });
+      return res.status(HttpCode.OK).json({ message: SUCCESS_MESSAGES.AUTH.ACCOUNT_DELETED });
     } catch (error: any) {
       return errorHandler.handleError(error, res);
     }
